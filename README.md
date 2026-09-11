@@ -1,6 +1,6 @@
 # 🌌 msr-stream
 
-Official plugin repository for [SkyStream](https://github.com/akashdh11/skystream).
+UnOfficial plugin repository for [SkyStream](https://github.com/akashdh11/skystream).
 
 ---
 
