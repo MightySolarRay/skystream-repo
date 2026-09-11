@@ -60,10 +60,14 @@
         }
     }
 
-    async function fetchText(url, extraHeaders = {}) {
-        const headers = { ...DEFAULT_HEADERS, ...extraHeaders };
-        const res = await timeoutPromise(http_get(url, headers), 20000);
-        return res && res.body ? res.body : "";
+    async function fetchText(url, extraHeaders = {}, timeoutMs = 12000) {
+        try {
+            const headers = { ...DEFAULT_HEADERS, ...extraHeaders };
+            const res = await timeoutPromise(http_get(url, headers), timeoutMs);
+            return res && res.body ? res.body : "";
+        } catch (e) {
+            return "";
+        }
     }
 
     function getPoster(meta) {
@@ -343,73 +347,90 @@
                 }));
             }
 
-            // 3. MultiMovies Fast Search & DooPlay Resolver
-            if (title) {
-                try {
-                    const searchEnc = encodeURIComponent(title);
-                    const mmHtml = await fetchText(`https://multimovies.beer/?s=${searchEnc}`);
-                    const cardMatch = mmHtml.match(/<div class="title">\s*<a href="([^"]+)">([^<]+)<\/a>/i);
-                    if (cardMatch && cardMatch[1]) {
-                        const moviePageHtml = await fetchText(cardMatch[1]);
-                        const optRegex = /data-post="(\d+)"\s+data-nume="(\d+)"\s+data-type="([^"]+)"/g;
-                        let optM;
-                        let count = 0;
-                        while ((optM = optRegex.exec(moviePageHtml)) !== null && count < 3) {
-                            count++;
-                            const postId = optM[1];
-                            const nume = optM[2];
-                            const dtype = optM[3];
-                            const formBody = `action=doo_player_ajax&post=${postId}&nume=${nume}&type=${dtype}`;
-                            const ajaxRes = await timeoutPromise(http_post(
-                                "https://multimovies.beer/wp-admin/admin-ajax.php",
-                                {
-                                    "Content-Type": "application/x-www-form-urlencoded",
-                                    "X-Requested-With": "XMLHttpRequest",
-                                    "Referer": cardMatch[1]
-                                },
-                                formBody
-                            ), 8000);
-                            if (ajaxRes && ajaxRes.body) {
-                                try {
-                                    const parsed = JSON.parse(ajaxRes.body);
-                                    if (parsed.embed_url) {
-                                        const iframeMatch = parsed.embed_url.match(/src="([^"]+)"/i) || [null, parsed.embed_url];
-                                        const finalLink = iframeMatch[1] || parsed.embed_url;
-                                        if (finalLink && !finalLink.includes("youtube.com")) {
-                                            streams.push(createStream({
-                                                url: finalLink,
-                                                source: `MultiMovies Server ${count}`,
-                                                headers: { "Referer": "https://multimovies.beer/" }
-                                            }));
-                                        }
-                                    }
-                                } catch (e) {}
-                            }
-                        }
-                    }
-                } catch (e) {}
+            // 3. VidSrc.me Embed Resolver
+            if (imdbId) {
+                const vsmUrl = isTv
+                    ? `https://vidsrc.me/embed/tv?imdb=${imdbId}&season=${season}&episode=${episode}`
+                    : `https://vidsrc.me/embed/movie?imdb=${imdbId}`;
+                streams.push(createStream({
+                    url: vsmUrl,
+                    source: "VidSrc.me [Stream 3]",
+                    headers: { "Referer": "https://vidsrc.me/" }
+                }));
             }
 
-            // 4. Movies4u Fallback Search Resolver
+            // Parallel auxiliary resolvers for multi-server backup
             if (title) {
-                try {
-                    const m4uHtml = await fetchText(`https://new5.movies4u.clinic/?s=${encodeURIComponent(title)}`, {
-                        "Cookie": "xla=s4t"
-                    });
-                    const m4uMatch = m4uHtml.match(/<article[\s\S]*?<a href="([^"]+)"[\s\S]*?<h[23][^>]*>([^<]+)<\/h[23]>/i);
-                    if (m4uMatch && m4uMatch[1]) {
-                        const m4uDetail = await fetchText(m4uMatch[1], { "Cookie": "xla=s4t" });
-                        const dlMatches = [...m4uDetail.matchAll(/class="[^"]*downloads-btns-div[^"]*"[\s\S]*?<a[^>]+href="([^"]+)"/gi)];
-                        for (let i = 0; i < Math.min(dlMatches.length, 2); i++) {
-                            const dlUrl = dlMatches[i][1];
-                            streams.push(createStream({
-                                url: dlUrl,
-                                source: `Movies4u [Server ${i + 1}]`,
-                                headers: { "Referer": m4uMatch[1] }
-                            }));
-                        }
-                    }
-                } catch (e) {}
+                await Promise.allSettled([
+                    // MultiMovies Fast Search & DooPlay Resolver
+                    (async () => {
+                        try {
+                            const searchEnc = encodeURIComponent(title);
+                            const mmHtml = await fetchText(`https://multimovies.beer/?s=${searchEnc}`, {}, 6000);
+                            const cardMatch = mmHtml.match(/<div class="title">\s*<a href="([^"]+)">([^<]+)<\/a>/i);
+                            if (cardMatch && cardMatch[1]) {
+                                const moviePageHtml = await fetchText(cardMatch[1], {}, 6000);
+                                const optRegex = /data-post="(\d+)"\s+data-nume="(\d+)"\s+data-type="([^"]+)"/g;
+                                let optM;
+                                let count = 0;
+                                while ((optM = optRegex.exec(moviePageHtml)) !== null && count < 2) {
+                                    count++;
+                                    const postId = optM[1];
+                                    const nume = optM[2];
+                                    const dtype = optM[3];
+                                    const formBody = `action=doo_player_ajax&post=${postId}&nume=${nume}&type=${dtype}`;
+                                    const ajaxRes = await timeoutPromise(http_post(
+                                        "https://multimovies.beer/wp-admin/admin-ajax.php",
+                                        {
+                                            "Content-Type": "application/x-www-form-urlencoded",
+                                            "X-Requested-With": "XMLHttpRequest",
+                                            "Referer": cardMatch[1]
+                                        },
+                                        formBody
+                                    ), 5000);
+                                    if (ajaxRes && ajaxRes.body) {
+                                        try {
+                                            const parsed = JSON.parse(ajaxRes.body);
+                                            if (parsed.embed_url) {
+                                                const iframeMatch = parsed.embed_url.match(/src="([^"]+)"/i) || [null, parsed.embed_url];
+                                                const finalLink = iframeMatch[1] || parsed.embed_url;
+                                                if (finalLink && !finalLink.includes("youtube.com")) {
+                                                    streams.push(createStream({
+                                                        url: finalLink,
+                                                        source: `MultiMovies Server ${count}`,
+                                                        headers: { "Referer": "https://multimovies.beer/" }
+                                                    }));
+                                                }
+                                            }
+                                        } catch (e) {}
+                                    }
+                                }
+                            }
+                        } catch (e) {}
+                    })(),
+
+                    // Movies4u Fallback Search Resolver
+                    (async () => {
+                        try {
+                            const m4uHtml = await fetchText(`https://new5.movies4u.clinic/?s=${encodeURIComponent(title)}`, {
+                                "Cookie": "xla=s4t"
+                            }, 6000);
+                            const m4uMatch = m4uHtml.match(/<article[\s\S]*?<a href="([^"]+)"[\s\S]*?<h[23][^>]*>([^<]+)<\/h[23]>/i);
+                            if (m4uMatch && m4uMatch[1]) {
+                                const m4uDetail = await fetchText(m4uMatch[1], { "Cookie": "xla=s4t" }, 6000);
+                                const dlMatches = [...m4uDetail.matchAll(/class="[^"]*downloads-btns-div[^"]*"[\s\S]*?<a[^>]+href="([^"]+)"/gi)];
+                                for (let i = 0; i < Math.min(dlMatches.length, 2); i++) {
+                                    const dlUrl = dlMatches[i][1];
+                                    streams.push(createStream({
+                                        url: dlUrl,
+                                        source: `Movies4u [Server ${i + 1}]`,
+                                        headers: { "Referer": m4uMatch[1] }
+                                    }));
+                                }
+                            }
+                        } catch (e) {}
+                    })()
+                ]);
             }
 
             cb({ success: true, data: streams });

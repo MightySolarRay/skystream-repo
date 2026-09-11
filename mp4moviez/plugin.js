@@ -37,14 +37,25 @@
         return b + (url.startsWith("/") ? "" : "/") + url;
     }
 
+    function timeoutPromise(promise, ms) {
+        return Promise.race([
+            Promise.resolve(promise),
+            new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), ms))
+        ]);
+    }
+
     /**
      * Helper to fetch HTML and parse it into a DOM Document.
      */
     async function fetchDoc(url, referer) {
-        const fullUrl = fixUrl(url);
-        const res = await http_get(fullUrl, getHeaders(referer));
-        if (!res || !res.body) return null;
-        return await parseHtml(res.body);
+        try {
+            const fullUrl = fixUrl(url);
+            const res = await timeoutPromise(http_get(fullUrl, getHeaders(referer)), 12000);
+            if (!res || !res.body) return null;
+            return await parseHtml(res.body);
+        } catch (e) {
+            return null;
+        }
     }
 
     /**
@@ -245,18 +256,18 @@
     }
 
     /**
-     * Resolves multi-hop HTTP redirects (dl.php -> location -> .fastxmp4.com)
+     * Resolves multi-hop HTTP redirects (dl.php -> location -> .fastxmp4.com) with timeout
      */
     async function resolveDirectStream(fullDlUrl, referer) {
         let curr = fullDlUrl;
         let ref = referer;
-        for (let hop = 0; hop < 5; hop++) {
+        for (let hop = 0; hop < 4; hop++) {
             try {
-                const res = await http_get(curr, {
+                const res = await timeoutPromise(http_get(curr, {
                     "User-Agent": USER_AGENT,
                     "Referer": ref,
                     "Range": "bytes=0-0"
-                });
+                }), 4000);
                 if (!res) break;
                 if (res.headers && res.headers.location) {
                     let loc = res.headers.location;
@@ -289,15 +300,32 @@
     async function loadStreams(url, cb) {
         try {
             const baseUrl = getBaseUrl();
-            const doc = await fetchDoc(url, baseUrl);
+            let doc = await fetchDoc(url, baseUrl);
             if (!doc) {
                 return cb({ success: false, errorCode: "NETWORK_ERROR", message: "Failed to open download page" });
             }
 
-            const streams = [];
-            const seenUrls = new Set();
-            const links = doc.querySelectorAll('a[href*="dl.php"]');
+            // Check if current page is the details page instead of the download page
+            let links = doc.querySelectorAll('a[href*="dl.php"]');
+            if (!links || links.length === 0) {
+                const downloadLink = doc.querySelector('.mast a, div[style*="text-align:left"] a, a[href*="-hd-"], a[href*="download"]');
+                const targetDlPage = downloadLink?.getAttribute('href');
+                if (targetDlPage) {
+                    const dlPageUrl = fixUrl(targetDlPage, baseUrl);
+                    const subDoc = await fetchDoc(dlPageUrl, url);
+                    if (subDoc) {
+                        doc = subDoc;
+                        links = doc.querySelectorAll('a[href*="dl.php"]');
+                    }
+                }
+            }
 
+            if (!links || links.length === 0) {
+                return cb({ success: false, errorCode: "NO_STREAMS", message: "No download streams found on page" });
+            }
+
+            const seenUrls = new Set();
+            const candidateLinks = [];
             for (const a of links) {
                 const href = a.getAttribute('href');
                 if (!href) continue;
@@ -309,31 +337,40 @@
                 const label = a.textContent.trim() || "";
                 const isJio = a.nextElementSibling?.textContent?.includes("Jio") || false;
 
-                // Quality extraction
                 let quality = "Auto";
                 const qMatch = href.match(/q=(\d+)/) || label.match(/(\d{3,4})[pP]/);
                 if (qMatch) {
                     quality = `${qMatch[1]}p`;
                 }
 
-                // Follow redirects to get direct playable media URL (with clean fallback)
-                let directUrl = fullDlUrl;
+                candidateLinks.push({
+                    fullDlUrl,
+                    label,
+                    isJio,
+                    quality
+                });
+            }
+
+            // Resolve direct stream URLs in parallel (capped at 5s per stream with instant fallback)
+            const streamPromises = candidateLinks.map(async (item) => {
+                let directUrl = item.fullDlUrl;
                 try {
-                    directUrl = await resolveDirectStream(fullDlUrl, url);
+                    directUrl = await resolveDirectStream(item.fullDlUrl, url);
                 } catch (e) {
-                    directUrl = fullDlUrl;
+                    directUrl = item.fullDlUrl;
                 }
 
-                streams.push(createStream({
+                return createStream({
                     url: directUrl,
-                    source: `FastxMp4 ${quality}${isJio ? ' (Jio Server)' : ''}`,
+                    source: `FastxMp4 ${item.quality}${item.isJio ? ' (Jio Server)' : ''}`,
                     headers: {
                         "Referer": url,
                         "User-Agent": USER_AGENT
                     }
-                }));
-            }
+                });
+            });
 
+            const streams = await Promise.all(streamPromises);
             cb({ success: true, data: streams });
         } catch (e) {
             cb({ success: false, errorCode: "STREAM_ERROR", message: String(e) });

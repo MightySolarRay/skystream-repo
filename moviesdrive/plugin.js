@@ -48,10 +48,14 @@
         ]);
     }
 
-    async function fetchHtml(url, extraHeaders = {}) {
-        const headers = getHeaders(extraHeaders);
-        const res = await timeoutPromise(http_get(url, headers), 25000);
-        return res && res.body ? res.body : "";
+    async function fetchHtml(url, extraHeaders = {}, timeoutMs = 10000) {
+        try {
+            const headers = getHeaders(extraHeaders);
+            const res = await timeoutPromise(http_get(url, headers), timeoutMs);
+            return res && res.body ? res.body : "";
+        } catch (e) {
+            return "";
+        }
     }
 
     function decodeEntities(s) {
@@ -278,43 +282,51 @@
             }
 
             // Step 1: Fetch archive page (e.g. https://mdrive.lol/archive/...)
-            const hubPageHtml = await fetchHtml(url);
-            const hubLinks = [...hubPageHtml.matchAll(/<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi)];
+            const hubPageHtml = await fetchHtml(url, {}, 8000);
+            if (!hubPageHtml) {
+                return cb({ success: true, data: [] });
+            }
 
-            let hcResolvedCount = 0;
+            const hubLinks = [...hubPageHtml.matchAll(/<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi)];
+            const hcCandidates = [];
+
             for (const hl of hubLinks) {
                 const linkHref = hl[1];
-                const linkText = hl[2].replace(/<[^>]+>/g, "").trim();
+                if (!linkHref) continue;
 
-                // Check HubCloud links (limit to first 2 to keep response instant)
+                // Check HubCloud links (limit to first 3 candidate links)
                 if (linkHref.includes("hubcloud.cx/drive/") || linkHref.includes("hubcloud.") || linkHref.includes("/drive/")) {
-                    if (hcResolvedCount < 2) {
-                        hcResolvedCount++;
-                        try {
-                            const hcHtml = await fetchHtml(linkHref, { "Referer": url });
-                            const genBtn = hcHtml.match(/<a[^>]+href="([^"]*gamerxyt\.com\/hubcloud\.php[^"]*)"/i);
-                            if (genBtn && genBtn[1]) {
-                                const genUrl = genBtn[1];
-                                const genHtml = await fetchHtml(genUrl, { "Referer": linkHref });
-                                const dlMatches = [...genHtml.matchAll(/<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi)];
-
-                                for (const dl of dlMatches) {
-                                    const dlUrl = dl[1];
-                                    const dlText = dl[2].replace(/<[^>]+>/g, "").trim();
-                                    if (dlText.includes("Download") || dlText.includes("Server") || dlText.includes("FSL") || dlText.includes("10Gbps") || dlText.includes("PixelServer")) {
-                                        addStream(dlUrl, `HubCloud [${dlText.replace(/^Download\s*\[?/i, "").replace(/\]?$/, "")}]`, genUrl);
-                                    }
-                                }
-                            }
-                        } catch (e) {}
+                    if (hcCandidates.length < 3) {
+                        hcCandidates.push(linkHref);
                     }
                 }
 
-                // Check GDFlix links
+                // Check GDFlix links immediately
                 if (linkHref.includes("gdflix.dev/file/") || linkHref.includes("gdflix.")) {
                     addStream(linkHref, "GDFlix Fast Server", url);
                 }
             }
+
+            // Step 2: Resolve HubCloud links concurrently
+            await Promise.allSettled(hcCandidates.map(async (linkHref) => {
+                try {
+                    const hcHtml = await fetchHtml(linkHref, { "Referer": url }, 6000);
+                    const genBtn = hcHtml.match(/<a[^>]+href="([^"]*gamerxyt\.com\/hubcloud\.php[^"]*)"/i);
+                    if (genBtn && genBtn[1]) {
+                        const genUrl = genBtn[1];
+                        const genHtml = await fetchHtml(genUrl, { "Referer": linkHref }, 6000);
+                        const dlMatches = [...genHtml.matchAll(/<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi)];
+
+                        for (const dl of dlMatches) {
+                            const dlUrl = dl[1];
+                            const dlText = dl[2].replace(/<[^>]+>/g, "").trim();
+                            if (dlText.includes("Download") || dlText.includes("Server") || dlText.includes("FSL") || dlText.includes("10Gbps") || dlText.includes("PixelServer")) {
+                                addStream(dlUrl, `HubCloud [${dlText.replace(/^Download\s*\[?/i, "").replace(/\]?$/, "")}]`, genUrl);
+                            }
+                        }
+                    }
+                } catch (e) {}
+            }));
 
             cb({ success: true, data: streams });
         } catch (e) {

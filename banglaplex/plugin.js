@@ -50,19 +50,27 @@
         ]);
     }
 
-    async function fetchHtml(url, extraHeaders = {}) {
-        const headers = getHeaders(extraHeaders);
-        const res = await timeoutPromise(http_get(url, headers), 25000);
-        return res && res.body ? res.body : "";
+    async function fetchHtml(url, extraHeaders = {}, timeoutMs = 10000) {
+        try {
+            const headers = getHeaders(extraHeaders);
+            const res = await timeoutPromise(http_get(url, headers), timeoutMs);
+            return res && res.body ? res.body : "";
+        } catch (e) {
+            return "";
+        }
     }
 
-    async function postData(url, body, extraHeaders = {}) {
-        const headers = getHeaders({
-            "Content-Type": "application/x-www-form-urlencoded",
-            ...extraHeaders
-        });
-        const res = await timeoutPromise(http_post(url, headers, body), 20000);
-        return res && res.body ? res.body : "";
+    async function postData(url, body, extraHeaders = {}, timeoutMs = 8000) {
+        try {
+            const headers = getHeaders({
+                "Content-Type": "application/x-www-form-urlencoded",
+                ...extraHeaders
+            });
+            const res = await timeoutPromise(http_post(url, headers, body), timeoutMs);
+            return res && res.body ? res.body : "";
+        } catch (e) {
+            return "";
+        }
     }
 
     function decodeEntities(s) {
@@ -478,22 +486,24 @@
                 if (!candidatePasteUrls.includes(p)) candidatePasteUrls.push(p);
             }
 
-            // 3. Resolve unlocked links from PasteURL & extract StreamHG/GDFlix links
-            for (const pasteLink of candidatePasteUrls) {
-                const unlocked = await resolvePasteUrl(pasteLink);
-                for (const u of unlocked) {
-                    if (u.includes("hgcloud.to") || u.includes("vibuxer.com") || u.includes("streamhg")) {
-                        const hgStreams = await resolveStreamHG(u);
-                        for (const s of hgStreams) {
-                            addStream(s.url, "BanglaPlex [Fast HLS / StreamHG]", s.referer);
+            // 3. Resolve unlocked links from PasteURL & extract StreamHG/GDFlix links in parallel
+            await Promise.allSettled(candidatePasteUrls.slice(0, 3).map(async (pasteLink) => {
+                try {
+                    const unlocked = await resolvePasteUrl(pasteLink);
+                    for (const u of unlocked) {
+                        if (u.includes("hgcloud.to") || u.includes("vibuxer.com") || u.includes("streamhg")) {
+                            const hgStreams = await resolveStreamHG(u);
+                            for (const s of hgStreams) {
+                                addStream(s.url, "BanglaPlex [Fast HLS / StreamHG]", s.referer);
+                            }
+                        } else if (u.includes("gofile.io") || u.includes("streamtape.com")) {
+                            addStream(u, `BanglaPlex [${u.includes("gofile") ? "GoFile" : "StreamTape"}]`, pasteLink);
+                        } else {
+                            addStream(u, "BanglaPlex [Mirror]", pasteLink);
                         }
-                    } else if (u.includes("gofile.io") || u.includes("streamtape.com")) {
-                        addStream(u, `BanglaPlex [${u.includes("gofile") ? "GoFile" : "StreamTape"}]`, pasteLink);
-                    } else {
-                        addStream(u, "BanglaPlex [Mirror]", pasteLink);
                     }
-                }
-            }
+                } catch (e) {}
+            }));
 
             cb({ success: true, data: streams });
         } catch (e) {
