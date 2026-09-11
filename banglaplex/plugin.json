@@ -1,0 +1,22 @@
+{
+  "packageName": "com.skystream.repo.banglaplex",
+  "name": "BanglaPlex [MSR]",
+  "version": 4,
+  "baseUrl": "https://banglaplex.biz",
+  "domains": [
+    { "name": "banglaplex.biz (Primary)", "url": "https://banglaplex.biz" }
+  ],
+  "description": "BanglaPlex - Bengali Movies, Web Series, Bollywood & Dual Audio in HD",
+  "authors": [
+    "MightySolarRay"
+  ],
+  "languages": [
+    "bn",
+    "hi",
+    "en"
+  ],
+  "categories": [
+    "Movies",
+    "Series"
+  ]
+}

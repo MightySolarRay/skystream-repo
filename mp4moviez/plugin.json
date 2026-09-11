@@ -1,0 +1,22 @@
+{
+  "packageName": "com.skystream.repo.mp4moviez",
+  "name": "Mp4Moviez [MSR]",
+  "version": 8,
+  "baseUrl": "https://www.mp4moviez.mu",
+  "domains": [
+    { "name": "mp4moviez.mu (Primary)", "url": "https://www.mp4moviez.mu" },
+    { "name": "mp4moviez.capital (Mirror)", "url": "https://www.mp4moviez.capital" }
+  ],
+  "description": "Mp4Moviez Bollywood, Hollywood & South Indian Hindi Dubbed Movies",
+  "authors": [
+    "MightySolarRay"
+  ],
+  "languages": [
+    "hi",
+    "en"
+  ],
+  "categories": [
+    "Movies",
+    "Series"
+  ]
+}

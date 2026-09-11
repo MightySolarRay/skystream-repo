@@ -1,0 +1,12 @@
+{
+  "name": "skystream-repo",
+  "version": "1.0.0",
+  "description": "SkyStream plugins repository",
+  "private": true,
+  "scripts": {
+    "deploy": "skystream deploy -u https://raw.githubusercontent.com/MightySolarRay/skystream-repo/main/"
+  },
+  "devDependencies": {
+    "skystream-extractors": "latest"
+  }
+}

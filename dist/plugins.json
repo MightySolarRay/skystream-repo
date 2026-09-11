@@ -1,0 +1,117 @@
+[
+  {
+    "packageName": "com.skystream.repo.banglaplex",
+    "name": "BanglaPlex [MSR]",
+    "version": 4,
+    "baseUrl": "https://banglaplex.biz",
+    "domains": [
+      { "name": "banglaplex.biz (Primary)", "url": "https://banglaplex.biz" }
+    ],
+    "description": "BanglaPlex - Bengali Movies, Web Series, Bollywood & Dual Audio in HD",
+    "authors": [
+      "MightySolarRay"
+    ],
+    "languages": [
+      "bn",
+      "hi",
+      "en"
+    ],
+    "categories": [
+      "Movies",
+      "Series"
+    ],
+    "url": "https://raw.githubusercontent.com/MightySolarRay/skystream-repo/main/dist/com.skystream.repo.banglaplex.sky"
+  },
+  {
+    "packageName": "com.skystream.repo.cinefreak",
+    "name": "CineFreak [MSR]",
+    "version": 6,
+    "baseUrl": "https://cinefreak.net",
+    "domains": [
+      { "name": "cinefreak.net (Primary)", "url": "https://cinefreak.net" }
+    ],
+    "description": "CineFreak - Bollywood, Hollywood, Bengali, South Indian, Web Series & K-Drama with direct CDN streams",
+    "authors": [
+      "MightySolarRay"
+    ],
+    "languages": [
+      "en",
+      "hi",
+      "bn"
+    ],
+    "categories": [
+      "Movies",
+      "Series"
+    ],
+    "url": "https://raw.githubusercontent.com/MightySolarRay/skystream-repo/main/dist/com.skystream.repo.cinefreak.sky"
+  },
+  {
+    "packageName": "com.skystream.repo.cinestream",
+    "name": "CineStream [MSR]",
+    "version": 3,
+    "baseUrl": "https://cinemeta-catalogs.strem.io",
+    "domains": [
+      { "name": "cinemeta-catalogs.strem.io (Primary)", "url": "https://cinemeta-catalogs.strem.io" }
+    ],
+    "description": "CineStream - Universal movies & TV series catalog powered by Stremio Cinemeta with multi-server playback",
+    "authors": [
+      "MightySolarRay"
+    ],
+    "languages": [
+      "en",
+      "hi"
+    ],
+    "categories": [
+      "Movies",
+      "Series",
+      "Anime"
+    ],
+    "url": "https://raw.githubusercontent.com/MightySolarRay/skystream-repo/main/dist/com.skystream.repo.cinestream.sky"
+  },
+  {
+    "packageName": "com.skystream.repo.moviesdrive",
+    "name": "MoviesDrive [MSR]",
+    "version": 3,
+    "baseUrl": "https://new3.moviesdrive.christmas",
+    "domains": [
+      { "name": "new3.moviesdrive.christmas (Primary)", "url": "https://new3.moviesdrive.christmas" },
+      { "name": "moviesdrive.world (Mirror)", "url": "https://moviesdrive.world" }
+    ],
+    "description": "MoviesDrive - Bollywood, Hollywood, South Indian & Hindi Dubbed Movies with HubCloud Fast CDNs",
+    "authors": [
+      "MightySolarRay"
+    ],
+    "languages": [
+      "hi",
+      "en"
+    ],
+    "categories": [
+      "Movies",
+      "Series"
+    ],
+    "url": "https://raw.githubusercontent.com/MightySolarRay/skystream-repo/main/dist/com.skystream.repo.moviesdrive.sky"
+  },
+  {
+    "packageName": "com.skystream.repo.mp4moviez",
+    "name": "Mp4Moviez [MSR]",
+    "version": 8,
+    "baseUrl": "https://www.mp4moviez.mu",
+    "domains": [
+      { "name": "mp4moviez.mu (Primary)", "url": "https://www.mp4moviez.mu" },
+      { "name": "mp4moviez.capital (Mirror)", "url": "https://www.mp4moviez.capital" }
+    ],
+    "description": "Mp4Moviez Bollywood, Hollywood & South Indian Hindi Dubbed Movies",
+    "authors": [
+      "MightySolarRay"
+    ],
+    "languages": [
+      "hi",
+      "en"
+    ],
+    "categories": [
+      "Movies",
+      "Series"
+    ],
+    "url": "https://raw.githubusercontent.com/MightySolarRay/skystream-repo/main/dist/com.skystream.repo.mp4moviez.sky"
+  }
+]

@@ -1,0 +1,22 @@
+{
+  "packageName": "com.skystream.repo.cinestream",
+  "name": "CineStream [MSR]",
+  "version": 3,
+  "baseUrl": "https://cinemeta-catalogs.strem.io",
+  "domains": [
+    { "name": "cinemeta-catalogs.strem.io (Primary)", "url": "https://cinemeta-catalogs.strem.io" }
+  ],
+  "description": "CineStream - Universal movies & TV series catalog powered by Stremio Cinemeta with multi-server playback",
+  "authors": [
+    "MightySolarRay"
+  ],
+  "languages": [
+    "en",
+    "hi"
+  ],
+  "categories": [
+    "Movies",
+    "Series",
+    "Anime"
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "packageName": "com.skystream.repo.moviesdrive",
+  "name": "MoviesDrive [MSR]",
+  "version": 3,
+  "baseUrl": "https://new3.moviesdrive.christmas",
+  "domains": [
+    { "name": "new3.moviesdrive.christmas (Primary)", "url": "https://new3.moviesdrive.christmas" },
+    { "name": "moviesdrive.world (Mirror)", "url": "https://moviesdrive.world" }
+  ],
+  "description": "MoviesDrive - Bollywood, Hollywood, South Indian & Hindi Dubbed Movies with HubCloud Fast CDNs",
+  "authors": [
+    "MightySolarRay"
+  ],
+  "languages": [
+    "hi",
+    "en"
+  ],
+  "categories": [
+    "Movies",
+    "Series"
+  ]
+}

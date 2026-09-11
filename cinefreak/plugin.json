@@ -1,0 +1,22 @@
+{
+  "packageName": "com.skystream.repo.cinefreak",
+  "name": "CineFreak [MSR]",
+  "version": 6,
+  "baseUrl": "https://cinefreak.net",
+  "domains": [
+    { "name": "cinefreak.net (Primary)", "url": "https://cinefreak.net" }
+  ],
+  "description": "CineFreak - Bollywood, Hollywood, Bengali, South Indian, Web Series & K-Drama with direct CDN streams",
+  "authors": [
+    "MightySolarRay"
+  ],
+  "languages": [
+    "en",
+    "hi",
+    "bn"
+  ],
+  "categories": [
+    "Movies",
+    "Series"
+  ]
+}
